@@ -92,16 +92,113 @@
         var keyword = ''; //keywordという変数を何も代入せずに宣言
         var page = 0; //pageという変数に最初に0を入れることによってその後の追加されたページが表示される
         var pageCount = 0;
-        $('.search__btn').on('click',function() { //”検索する”ボタンをクリックした時
-          keyword = $('.search__text__input').val(); //keywordという変数にvalというイベントを使いインプットを取得し格納する
-          page = 1; //クリックしたら最初に1ページめが出るようにする
-          console.log(keyword);
-          searchBooks(); //関数を実行
-        });
-        function searchBooks(){
+        //リセット機能
+        function deleteHtml(){
           $('.lists').empty(); //emptyメソッドは指定した要素の子ノードを削除（指定した要素は消さない）
           $('.pager').remove(); //removeメソッドは指定した要素＆子要素全て削除
           $('.message').empty();
+        }
+        //リスト表示機能
+        function ListData(data){
+          //　　　　↓対象のオブジェクト
+          $.each(data.Items,function(index,val){ //eachは繰り返し処理するメソッド。第２引数のvalはオブジェクトdata.Itemsのこと
+            if(data.count > 0){ //もしもヒット数は0より大きい時
+              //変数listを宣言し、テンプレとデータを入れる　データはdata.ItemsのなかのItemのなかのパラメータ（タイトルなど）で取得する
+              var list =
+                '<li class="lists__item">' +
+                  '<div class="lists__item__inner">' +
+                    '<a href="' + val.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
+                      '<img src="' + val.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
+                      '<p class="lists__item__detail">作品名：' + val.Item.title + '</p>' +
+                      '<p class="lists__item__detail">作者：' + val.Item.author + '</p>' +
+                      '<p class="lists__item__detail">出版社：' + val.Item.publisherName + '</p>' +
+                    '</a>' +
+                  '</div>' +
+                '</li>';
+              $('.lists').append(list); //リストクラスに要素内に追加
+              console.log(data);
+            };
+          });
+        }
+        //ページャ表示機能
+        function Pager(data){
+          pageCount = data.pageCount;
+          var pager =
+            '<div class="pager" data-js="pager">' +
+              '<div class="counter">' +
+                '<span class="counter-current"> ' + page + ' </span>' +
+                '/' +
+                '<span class="counter-all">' + pageCount + '</span>' +
+              '</div>' +
+              '<div class="btn-wrapper">' +
+                '<a class="btn-item" data-js="page-prev" href="">前へ</a>' +
+                '<a class="btn-item" data-js="page-next" href="">次へ</a>' +
+              '</div>' +
+            '</div>';
+          $('.container').append(pager); //コンテイナークラスにappendイベントを使い、要素ないの最後に変数pagerを追加する
+          console.log(data);
+        }
+        //ボタンに色を付ける機能
+        function Disabled(){
+          if (page === 1){
+            $('[data-js = "page-prev"]').addClass('disabled'); //data属性の前へボタンにdisabledクラスを追加する
+          }
+          if(page === pageCount){
+            $('[data-js = "page-next"]').addClass('disabled'); //data属性の次へボタンにdisabledクラスを追加する
+          }
+        }
+        //検索結果がなかったときの機能
+        function NoKeyword(data){
+          if(data.page === 0){ //もしもページが0の時
+            $('.message').html('<p class="error-message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>'); //メッセージクラスにhtmlメソッドを使いテキストを表示させる
+            $('.pager').remove(); //この時ページャを削除する
+          }
+        }
+        //データ通信に成功した時まとめ
+        function success(data){
+          ListData(data);
+          Pager(data);
+          Disabled();
+          //console.log(pager);
+          //console.log(data);
+          NoKeyword(data);
+        }
+        //エラーという変数を宣言して
+        var error = {
+          none : '<p class="error-message">検索文字が入力されていません。</p>',
+          time : '<p class="error-message">リクエスト過多です。しばらく時間を置いてからお試しください。</p>',
+          net : '<p class="error-message">通信に失敗しました。インターネットの接続をご確認ください。</p>',
+          not_found : '<p class="error-message">対象のデータが存在しません。</p>',
+          system : '<p class="error-message">システムエラー。長時間続くようであれば、<a href="https://webservice.faq.rakuten.net/hc/ja/requests/new">こちらよりごお問い合わせください。</a></p>',
+          maintenance: '<p class="error-message">メンテナンス中</p>'
+        };
+        //エラー表示機能
+        function errorText(jqXHR){
+          switch(jqXHR.status){ //多分岐のためswitchを使う（jqXHR.statusはエラーコードを取得）
+            case 0: //エラーコードが0の時
+              $('.message').html(error.net) //メッセージグラスにhtmlメソッドを使って、変数errorのなかのnetを追加する
+            break; //breakで処理を終わらせる
+            case 400:
+              $('.message').html(error.none);
+            break;
+            case 404:
+              $('.message').html(error.not_found);
+            break;
+            case 429:
+              $('.message').html(error.time);
+            break;
+            case 500:
+              $('.message').html(error.system);
+            break;
+            case 503:
+              $('.message').html(error.maintenance);
+            break;
+          }
+          console.log(jqXHR);
+        }
+        //通信に成功失敗した時の機能
+        function searchBooks(){
+          deleteHtml();
           $.ajax({
             url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
             type: 'GET',
@@ -112,97 +209,26 @@
               applicationId: appId, //渡された変数をIDとして使用する
               booksGenreId: '001', //楽天ブックスにおけるジャンルを特定するためのID
               keyword: keyword, //keywordというパラメータに宣言していた変数keywordを入れる
-              hits: '20', //1ページあたりの取得件数20件
+              hits: 20,
               page: page, //宣言していた変数pageを持ってきてその時のページ数を取得する
             },
           }).done(function(data) {
           // この中にデータ取得後の動きを記述していきます。
-          //　　　　↓対象のオブジェクト
-            $.each(data.Items,function(index,val){ //eachは繰り返し処理するメソッド。第２引数のvalはオブジェクトdata.Itemsのこと
-              if(data.count > 0){ //もしもヒット数は0より大きい時
-                //変数listを宣言し、テンプレとデータを入れる　データはdata.ItemsのなかのItemのなかのパラメータ（タイトルなど）で取得する
-                var list =
-                  '<li class="lists__item">' +
-                    '<div class="lists__item__inner">' +
-                      '<a href="" class="lists__item__link" target="_blank">' +
-                        '<img src="' + val.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
-                        '<p class="lists__item__detail">作品名：' + val.Item.title + '</p>' +
-                        '<p class="lists__item__detail">作者：' + val.Item.author + '</p>' +
-                        '<p class="lists__item__detail">出版社：' + val.Item.publisherName + '</p>' +
-                      '</a>' +
-                    '</div>' +
-                  '</li>';
-                $('.lists').append(list); //リストクラスに要素内に追加
-                //console.log(data);
-              };
-            });
-            //ページャ
-            pageCount = data.pageCount; //?
-            var pager =
-              '<div class="pager" data-js="pager">' +
-                '<div class="counter">' +
-                  '<span class="counter-current"> ' + page + ' </span>' +
-                  '/' +
-                  '<span class="counter-all">' + pageCount + '</span>' +
-                '</div>' +
-                '<div class="btn-wrapper">' +
-                  '<a class="btn-item" data-js="page-prev" href="">前へ</a>' +
-                  '<a class="btn-item" data-js="page-next" href="">次へ</a>' +
-                '</div>' +
-              '</div>';
-            $('.container').append(pager); //コンテイナークラスにappendイベントを使い、要素ないの最後に変数pagerを追加する
-            if (page === pageCount && page === 1) { //もしもページが総ページかつページが1だったら
-              $('.btn-item').addClass('disabled'); //btn-itemクラスにcssのdisabledを追加する
-            } else if (page === 1) { //もしもページが1だったら
-              $('[data-js = "page-prev"]').addClass('disabled'); //data属性の前へボタンにdisabledクラスを追加する
-            } else if (page === pageCount) { //もしもページ数が
-              $('[data-js = "page-next"]').addClass('disabled'); //data属性の次へボタンにdisabledクラスを追加する
-            };
-            //console.log(pager);
-            //console.log(data);
-            if(data.page === 0){ //もしもページが0の時
-              $('.message').html('<p class="error-message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>'); //メッセージクラスにhtmlメソッドを使いテキストを表示させる
-              $('.pager').remove(); //この時ページャを削除する
-            }
+            success(data);
           }).fail(function (jqXHR){ //データ通信が失敗した時(引数でjqXHRを使い、エラーした時のデータを取得する)
-            var error = { //エラーという変数を宣言して
-              none : '<p class="error-message">検索文字が入力されていません。</p>',
-              time : '<p class="error-message">リクエスト過多です。しばらく時間を置いてからお試しください。</p>',
-              net : '<p class="error-message">通信に失敗しました。インターネットの接続をご確認ください。</p>',
-              not_found : '<p class="error-message">対象のデータが存在しません。</p>',
-              system : '<p class="error-message">システムエラー。長時間続くようであれば、<a href="https://webservice.faq.rakuten.net/hc/ja/requests/new">こちらよりごお問い合わせください。</a></p>',
-              maintenance: '<p class="error-message">メンテナンス中</p>'
-            };
-            switch(jqXHR.status){ //多分岐のためswitchを使う（jqXHR.statusはエラーコードを取得）
-              case 0: //エラーコードが0の時
-                $('.message').html(error.net) //メッセージグラスにhtmlメソッドを使って、変数errorのなかのnetを追加する
-                break; //breakで処理を終わらせる
-
-              case 400:
-                $('.message').html(error.none);
-              break;
-
-              case 404:
-                $('.message').html(error.not_found);
-              break;
-
-              case 429:
-                $('.message').html(error.time);
-              break;
-
-              case 500:
-                $('.message').html(error.system);
-              break;
-
-              case 503:
-                $('.message').html(error.maintenance);
-              break;
-            }
-            console.log(jqXHR);
+            errorText(jqXHR);
           });
         };
+        //検索ボタンをクリックした時の機能
+        $('.search__btn').on('click',function() { //”検索する”ボタンをクリックした時
+          keyword = $('.search__text__input').val(); //keywordという変数にvalというイベントを使いインプットを取得し格納する
+          page = 1; //クリックしたら最初に1ページめが出るようにする
+          //console.log(keyword);
+          searchBooks(); //関数を実行
+        });
+        //次のページや前のページを押した時の機能
         $(document).on('click', '.btn-item', function(e) { //btn-itemをクリックした時
-          e.preventDefault(); //preventDefault()で一度全てのイベントをキャンセルする
+          e.preventDefault(); //preventDefault()で一度全てのイベントをキャンセルしてリセットする
           var btnData = $(this).data('js'); //btnDataという変数を宣言し、イベントにdata属性jsを取得する
           if (btnData === 'page-next'){ //データが次への時
             if (page < pageCount) { //ページ数が総ページ数未満の時
