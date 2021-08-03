@@ -100,11 +100,14 @@
         }
         //リスト表示機能
         function ListData(data){
+          //変数listをeachの外で使い為、先に空の値を入れて宣言し、のちに値を追加する
+          var list = '';
           //　　　　↓対象のオブジェクト
           $.each(data.Items,function(index,val){ //eachは繰り返し処理するメソッド。第２引数のvalはオブジェクトdata.Itemsのこと
             if(data.count > 0){ //もしもヒット数は0より大きい時
-              //変数listを宣言し、テンプレとデータを入れる　データはdata.ItemsのなかのItemのなかのパラメータ（タイトルなど）で取得する
-              var list =
+              //宣言していた変数listを、テンプレとデータを入れる
+              //データはdata.ItemsのなかのItemのなかのパラメータ（タイトルなど）で取得する
+              list += //加算代入を使うことによって値を追加して使うことができる
                 '<li class="lists__item">' +
                   '<div class="lists__item__inner">' +
                     '<a href="' + val.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
@@ -115,14 +118,15 @@
                     '</a>' +
                   '</div>' +
                 '</li>';
-              $('.lists').append(list); //リストクラスに要素内に追加
             };
           });
-          console.log(data);
+          $('.lists').append(list); //リストクラスに要素内に追加
+          console.log(list);
+          //console.log(data);
         }
         //ページャ表示機能
         function Pager(data){
-          pageCount = data.pageCount;
+          pageCount = data.pageCount;//ページカウントにて総ページ数を取得、表示する
           var pager =
             '<div class="pager" data-js="pager">' +
               '<div class="counter">' +
