@@ -153,8 +153,8 @@
         //検索結果がなかったときの機能
         function NoKeyword(data){
           if(data.page === 0){ //もしもページが0の時
+            deleteHtml() //この時ページャを削除する
             $('.message').html('<p class="error-message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>'); //メッセージクラスにhtmlメソッドを使いテキストを表示させる
-            $('.pager').remove(); //この時ページャを削除する
           }
         }
         //データ通信に成功した時まとめ
@@ -232,7 +232,7 @@
         //次のページや前のページを押した時の機能
         $(document).on('click', '.btn-item', function(e) { //btn-itemをクリックした時
           e.preventDefault(); //preventDefault()で一度全てのイベントをキャンセルしてリセットする
-          var btnData = $(this).data('js'); //btnDataという変数を宣言し、イベントにdata属性jsを取得する
+          var btnData = $(this).data('js'); //btnDataという変数を宣言し、document(ページ全体で)data属性js(検索する機能）を取得する
           if (btnData === 'page-next'){ //データが次への時
             if (page < pageCount) { //ページ数が総ページ数未満の時
               page += 1; //加算代入 今のページから1ページ足す
